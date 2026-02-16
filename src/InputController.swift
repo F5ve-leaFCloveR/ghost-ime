@@ -4,6 +4,7 @@ import InputMethodKit
 final class InputController: IMKInputController {
     private var buffer = ""
     private var suggestion: String?
+    private var suggestionVersion = 0
     private let predictor = Predictor()
 
     override func recognizedEvents(_ sender: Any!) -> Int {
@@ -96,10 +97,35 @@ final class InputController: IMKInputController {
             return
         }
 
-        let rawSuggestion = predictor.suggest(for: buffer.lowercased())
+        suggestionVersion += 1
+        let currentVersion = suggestionVersion
+        let prefixSnapshot = buffer
+
+        refreshLocalSuggestion(for: prefixSnapshot)
+        renderMarkedText(client)
+
+        predictor.requestNeuralSuggestion(for: prefixSnapshot.lowercased()) { [weak self] rawSuggestion in
+            guard let self else { return }
+            guard currentVersion == self.suggestionVersion else { return }
+            guard self.buffer == prefixSnapshot else { return }
+            guard let rawSuggestion else { return }
+
+            let adjusted = self.adjustCase(rawSuggestion, for: self.buffer)
+            guard adjusted.lowercased().hasPrefix(self.buffer.lowercased()),
+                  adjusted.count > self.buffer.count else {
+                return
+            }
+
+            self.suggestion = adjusted
+            self.renderMarkedText(client)
+        }
+    }
+
+    private func refreshLocalSuggestion(for prefix: String) {
+        let rawSuggestion = predictor.suggest(for: prefix.lowercased())
         if let rawSuggestion {
-            let adjusted = adjustCase(rawSuggestion, for: buffer)
-            if adjusted.lowercased().hasPrefix(buffer.lowercased()) {
+            let adjusted = adjustCase(rawSuggestion, for: prefix)
+            if adjusted.lowercased().hasPrefix(prefix.lowercased()) {
                 suggestion = adjusted
             } else {
                 suggestion = nil
@@ -107,7 +133,9 @@ final class InputController: IMKInputController {
         } else {
             suggestion = nil
         }
+    }
 
+    private func renderMarkedText(_ client: IMKTextInput) {
         if let suggestion = suggestion {
             let suffix = suffixAfterPrefix(full: suggestion, prefix: buffer)
             let display = buffer + suffix

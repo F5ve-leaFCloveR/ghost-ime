@@ -4,6 +4,7 @@ final class Predictor {
     private let words: [String]
     private var userCounts: [String: Int]
     private let countsURL: URL
+    private let aiSuggester: AISuggester?
 
     init() {
         if let url = Bundle.main.url(forResource: "words", withExtension: "txt"),
@@ -16,11 +17,10 @@ final class Predictor {
             words = []
         }
 
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
-            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
-        let appDir = appSupport.appendingPathComponent("ghost-ime", isDirectory: true)
+        let appDir = Self.resolveAppDirectory()
         try? FileManager.default.createDirectory(at: appDir, withIntermediateDirectories: true)
         countsURL = appDir.appendingPathComponent("user_counts.json")
+        aiSuggester = AISuggester.loadDefault(appDirectory: appDir)
 
         if let data = try? Data(contentsOf: countsURL),
            let decoded = try? JSONDecoder().decode([String: Int].self, from: data) {
@@ -58,6 +58,15 @@ final class Predictor {
         return best
     }
 
+    func requestNeuralSuggestion(for prefix: String, completion: @escaping (String?) -> Void) {
+        guard let aiSuggester else {
+            DispatchQueue.main.async { completion(nil) }
+            return
+        }
+
+        aiSuggester.suggest(prefix: prefix, completion: completion)
+    }
+
     func learn(word: String) {
         let w = word.lowercased()
         guard w.count >= 2 else { return }
@@ -68,5 +77,11 @@ final class Predictor {
     private func persist() {
         guard let data = try? JSONEncoder().encode(userCounts) else { return }
         try? data.write(to: countsURL, options: [.atomic])
+    }
+
+    private static func resolveAppDirectory() -> URL {
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+        return appSupport.appendingPathComponent("ghost-ime", isDirectory: true)
     }
 }

@@ -22,6 +22,7 @@ xcrun swiftc \
   "$ROOT/src/main.swift" \
   "$ROOT/src/AppDelegate.swift" \
   "$ROOT/src/InputController.swift" \
+  "$ROOT/src/AISuggester.swift" \
   "$ROOT/src/Predictor.swift" \
   -o "$MACOS_DIR/$APP_NAME"
 

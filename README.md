@@ -19,6 +19,20 @@ Enable it:
 
 If it doesn't show up, log out and back in.
 
+## Local neural autocomplete (Ollama)
+
+`ghost-ime` can ask a local LLM (running on your Mac) for word completions.
+
+```bash
+ollama pull llama3.2:1b
+./scripts/setup-local-ai.sh llama3.2:1b
+./scripts/build.sh
+./scripts/install.sh
+```
+
+By default, `ghost-ime` calls `http://127.0.0.1:11434/api/generate`.
+If Ollama is unavailable, it falls back to local dictionary suggestions.
+
 ## Use
 
 - Type letters -> a light gray suggestion appears
@@ -69,6 +83,20 @@ Enable it:
 
 - Работает в большинстве приложений, но не в защищенных полях (пароли) и некоторых редакторах.
 - Все хранится локально: `~/Library/Application Support/ghost-ime/user_counts.json`.
+
+## Локальная нейросетевая подсказка (Ollama)
+
+`ghost-ime` может брать продолжение слова из локальной LLM (без облака, на вашем Mac).
+
+```bash
+ollama pull llama3.2:1b
+./scripts/setup-local-ai.sh llama3.2:1b
+./scripts/build.sh
+./scripts/install.sh
+```
+
+По умолчанию используется `http://127.0.0.1:11434/api/generate`.
+Если Ollama недоступен, `ghost-ime` автоматически вернется к локальному словарю.
 
 ## Удаление
 
